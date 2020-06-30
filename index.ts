@@ -614,7 +614,7 @@ export const db = (filePath: string) => {
 					},
 
 					drop(colNames: string[]) {
-						if (!thisTable.exists) {
+						if (!thTable.exists) {
 							throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 						}
 
@@ -715,10 +715,24 @@ export const db = (filePath: string) => {
 									if (col.constraints.includes('autoIncrement')) {
 										const table = thisTable.get()
 
+										const prevNumber = (rowNum == undefined)
+											? (table.rows.length > 0)
+												? table.rows[table.rows.length - 1][col.name]
+												: 0
+											: (rowNum > 0)
+												? table.rows[rowNum - 1][col.name]
+												: 0
+
 										const currentNumber = (rowNum == undefined) ? table.rows.length + 1 : rowNum + 1 // autoIncrement starts at 1
 
-										if (el != undefined && el != currentNumber) {
-											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty.`)
+										const nextNumber = (rowNum == undefined)
+											? Infinity
+											: (rowNum < table.rows.length)
+												? table.rows[rowNum + 1][col.name]
+												: Infinity
+
+										if (el != undefined && (el <= prevNumber || el >= nextNumber)) {
+											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }`)
 										}
 
 										el = currentNumber
