@@ -156,10 +156,10 @@ export class Table {
 
 	sortBy(colName: string, direction: 'ASC' | 'DESC' = 'ASC') {
 
-		let newRows: DB_Table_Row_Formatted[]
+		let newRows = this.rows.concat()
 
 		if (direction == 'ASC') {
-			newRows = this.rows.sort((a, b) => {
+			newRows.sort((a, b) => {
 				const dataType = this.getCol(colName).dataType
 
 				const value1 = new dataTypes[dataType](a[colName])
@@ -168,7 +168,7 @@ export class Table {
 				return value1.compare(value2) ? 1 : -1
 			})
 		} else {
-			newRows = this.rows.sort((a, b) => {
+			newRows.sort((a, b) => {
 				const { dataType } = this.getCol(colName)
 
 				const value1 = new dataTypes[dataType](a[colName])
@@ -606,6 +606,7 @@ export const db = (filePath: string) => {
 							// Restore changes on error
 
 							file.tables[tableName] = tableBackup
+							writeDBFile()
 
 							throw err
 						}
@@ -668,6 +669,7 @@ export const db = (filePath: string) => {
 							// Restore changes on error
 
 							file.tables[tableName] = tableBackup
+							writeDBFile()
 
 							throw err
 						}
@@ -804,6 +806,7 @@ export const db = (filePath: string) => {
 						// Restore changes on error
 
 						file.tables[tableName] = tableBackup
+						writeDBFile()
 
 						throw err
 					}
@@ -838,6 +841,7 @@ export const db = (filePath: string) => {
 						// Restore changes on error
 
 						file.tables[tableName] = tableBackup
+						writeDBFile()
 
 						throw err
 					}
@@ -915,6 +919,7 @@ export const db = (filePath: string) => {
 						// Restore changes on error
 
 						file.tables[tableName] = tableBackup
+						writeDBFile()
 
 						throw err
 					}

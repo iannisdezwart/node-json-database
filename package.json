@@ -1,9 +1,14 @@
 {
   "name": "node-json-database",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "JS Database Management System using JSON files",
   "main": "index.js",
-  "keywords": [ "database", "db", "sql", "json" ],
+  "keywords": [
+    "database",
+    "db",
+    "sql",
+    "json"
+  ],
   "author": "Iannis de Zwart",
   "license": "ISC",
   "dependencies": {
