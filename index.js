@@ -168,9 +168,9 @@ var Table = /** @class */ (function () {
     Table.prototype.sortBy = function (colName, direction) {
         var _this = this;
         if (direction === void 0) { direction = 'ASC'; }
-        var newRows;
+        var newRows = this.rows.concat();
         if (direction == 'ASC') {
-            newRows = this.rows.sort(function (a, b) {
+            newRows.sort(function (a, b) {
                 var dataType = _this.getCol(colName).dataType;
                 var value1 = new dataTypes[dataType](a[colName]);
                 var value2 = new dataTypes[dataType](b[colName]);
@@ -178,7 +178,7 @@ var Table = /** @class */ (function () {
             });
         }
         else {
-            newRows = this.rows.sort(function (a, b) {
+            newRows.sort(function (a, b) {
                 var dataType = _this.getCol(colName).dataType;
                 var value1 = new dataTypes[dataType](a[colName]);
                 var value2 = new dataTypes[dataType](b[colName]);
@@ -597,6 +597,7 @@ exports.db = function (filePath) {
                         catch (err) {
                             // Restore changes on error
                             file.tables[tableName] = tableBackup;
+                            writeDBFile();
                             throw err;
                         }
                     },
@@ -653,6 +654,7 @@ exports.db = function (filePath) {
                         catch (err) {
                             // Restore changes on error
                             file.tables[tableName] = tableBackup;
+                            writeDBFile();
                             throw err;
                         }
                     }
@@ -689,12 +691,25 @@ exports.db = function (filePath) {
                                         // autoIncrement
                                         if (col.constraints.includes('autoIncrement')) {
                                             var table_1 = thisTable.get();
-                                            var currentNumber = (rowNum == undefined) ? table_1.rows.length + 1 : rowNum + 1; // autoIncrement starts at 1
-                                            if (el != undefined && el != currentNumber) {
-                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty.");
+                                            var prevNumber = (rowNum == undefined)
+                                                ? (table_1.rows.length > 0)
+                                                    ? table_1.rows[table_1.rows.length - 1][col.name]
+                                                    : 0
+                                                : (rowNum > 0)
+                                                    ? table_1.rows[rowNum - 1][col.name]
+                                                    : 0;
+                                            if (el == null) {
+                                                el = prevNumber + 1;
                                             }
-                                            el = currentNumber;
-                                            dataTypeParsedEl = new dataTypes.Int(currentNumber);
+                                            var nextNumber = (rowNum == undefined)
+                                                ? Infinity
+                                                : (rowNum < table_1.rows.length - 1)
+                                                    ? table_1.rows[rowNum + 1][col.name]
+                                                    : Infinity;
+                                            if (el < prevNumber && el > nextNumber) {
+                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum : '') + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber);
+                                            }
+                                            dataTypeParsedEl = new dataTypes.Int(el);
                                         }
                                         // notNull
                                         if (col.constraints.includes('notNull')) {
@@ -797,6 +812,7 @@ exports.db = function (filePath) {
                     catch (err) {
                         // Restore changes on error
                         file.tables[tableName] = tableBackup;
+                        writeDBFile();
                         throw err;
                     }
                 },
@@ -822,6 +838,7 @@ exports.db = function (filePath) {
                     catch (err) {
                         // Restore changes on error
                         file.tables[tableName] = tableBackup;
+                        writeDBFile();
                         throw err;
                     }
                     return updated;
@@ -916,6 +933,7 @@ exports.db = function (filePath) {
                     catch (err) {
                         // Restore changes on error
                         file.tables[tableName] = tableBackup;
+                        writeDBFile();
                         throw err;
                     }
                     return deleted;
