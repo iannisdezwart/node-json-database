@@ -79,7 +79,10 @@ export class Table {
 	where(filterFunction: RowFilterFunction) {
 		const newRows: DB_Table_Row_Formatted[] = []
 
-		for (let row of this.rows) {
+		for (let i = 0; i < this.rows.length; i++) {
+			const row = this.rows[i]
+			row.rowNum = i
+
 			if (filterFunction(row)) {
 				newRows.push(row)
 			}
@@ -840,6 +843,7 @@ export const db = (filePath: string) => {
 					try {
 						for (let i = 0; i < table.rows.length; i++) {
 							const row = table.rows[i]
+							row.rowNum = i
 
 							if (where(row)) {
 								// Update this row
@@ -889,6 +893,7 @@ export const db = (filePath: string) => {
 
 						while (true) {
 							const rowTryingToDelete = thisTable.get().rows[i]
+							rowTryingToDelete.rowNum = i
 
 							if (rowTryingToDelete == undefined) {
 								// We reached the end of the table

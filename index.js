@@ -55,6 +55,7 @@ var __spread = (this && this.__spread) || function () {
     return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.db = exports.Table = void 0;
 var fs = require("fs");
 var chalk = require("chalk");
 var Table = /** @class */ (function () {
@@ -92,22 +93,13 @@ var Table = /** @class */ (function () {
         return Table.fromRows(newRows, this.cols);
     };
     Table.prototype.where = function (filterFunction) {
-        var e_2, _a;
         var newRows = [];
-        try {
-            for (var _b = __values(this.rows), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var row = _c.value;
-                if (filterFunction(row)) {
-                    newRows.push(row);
-                }
+        for (var i = 0; i < this.rows.length; i++) {
+            var row = this.rows[i];
+            row.rowNum = i;
+            if (filterFunction(row)) {
+                newRows.push(row);
             }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
         }
         return Table.fromRows(newRows, this.cols);
     };
@@ -271,24 +263,24 @@ var Table = /** @class */ (function () {
         // Generate the newRows
         var newRows = [];
         var _loop_1 = function (i) {
-            var e_3, _a;
+            var e_2, _a;
             var newRow = table1.rows[i];
             var joinRow = table2.where(function (row) {
-                var e_4, _a;
+                var e_3, _a;
                 try {
-                    for (var doubleColums_1 = (e_4 = void 0, __values(doubleColums)), doubleColums_1_1 = doubleColums_1.next(); !doubleColums_1_1.done; doubleColums_1_1 = doubleColums_1.next()) {
+                    for (var doubleColums_1 = (e_3 = void 0, __values(doubleColums)), doubleColums_1_1 = doubleColums_1.next(); !doubleColums_1_1.done; doubleColums_1_1 = doubleColums_1.next()) {
                         var doubleColumn = doubleColums_1_1.value;
                         if (row[doubleColumn] != table1.rows[i][doubleColumn]) {
                             return false;
                         }
                     }
                 }
-                catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                catch (e_3_1) { e_3 = { error: e_3_1 }; }
                 finally {
                     try {
                         if (doubleColums_1_1 && !doubleColums_1_1.done && (_a = doubleColums_1.return)) _a.call(doubleColums_1);
                     }
-                    finally { if (e_4) throw e_4.error; }
+                    finally { if (e_3) throw e_3.error; }
                 }
                 return true;
             }).rows[0]; // Assuming that there is only one joinRow
@@ -297,7 +289,7 @@ var Table = /** @class */ (function () {
             }
             try {
                 // Set all right side columns
-                for (var colsOfTable2_1 = (e_3 = void 0, __values(colsOfTable2)), colsOfTable2_1_1 = colsOfTable2_1.next(); !colsOfTable2_1_1.done; colsOfTable2_1_1 = colsOfTable2_1.next()) {
+                for (var colsOfTable2_1 = (e_2 = void 0, __values(colsOfTable2)), colsOfTable2_1_1 = colsOfTable2_1.next(); !colsOfTable2_1_1.done; colsOfTable2_1_1 = colsOfTable2_1.next()) {
                     var col = colsOfTable2_1_1.value;
                     if (!(doubleColums.includes(col))) {
                         // Fill coulumns with null if they could not be joined
@@ -306,12 +298,12 @@ var Table = /** @class */ (function () {
                     }
                 }
             }
-            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
             finally {
                 try {
                     if (colsOfTable2_1_1 && !colsOfTable2_1_1.done && (_a = colsOfTable2_1.return)) _a.call(colsOfTable2_1);
                 }
-                finally { if (e_3) throw e_3.error; }
+                finally { if (e_2) throw e_2.error; }
             }
             newRows.push(newRow);
         };
@@ -321,7 +313,7 @@ var Table = /** @class */ (function () {
         return Table.fromRows(newRows, newCols);
     };
     Table.prototype.getCol = function (colName) {
-        var e_5, _a;
+        var e_4, _a;
         try {
             for (var _b = __values(this.cols), _c = _b.next(); !_c.done; _c = _b.next()) {
                 var col = _c.value;
@@ -330,12 +322,12 @@ var Table = /** @class */ (function () {
                 }
             }
         }
-        catch (e_5_1) { e_5 = { error: e_5_1 }; }
+        catch (e_4_1) { e_4 = { error: e_4_1 }; }
         finally {
             try {
                 if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
             }
-            finally { if (e_5) throw e_5.error; }
+            finally { if (e_4) throw e_4.error; }
         }
     };
     Table.fromRows = function (rows, cols) {
@@ -347,7 +339,7 @@ var Table = /** @class */ (function () {
         get: function () {
             return this.rows.length;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return Table;
@@ -490,7 +482,7 @@ exports.db = function (filePath) {
                     writeDBFile();
                 },
                 drop: function () {
-                    var e_6, _a;
+                    var e_5, _a;
                     if (!thisTable.exists) {
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
@@ -502,12 +494,12 @@ exports.db = function (filePath) {
                             colNames.push(col.name);
                         }
                     }
-                    catch (e_6_1) { e_6 = { error: e_6_1 }; }
+                    catch (e_5_1) { e_5 = { error: e_5_1 }; }
                     finally {
                         try {
                             if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                         }
-                        finally { if (e_6) throw e_6.error; }
+                        finally { if (e_5) throw e_5.error; }
                     }
                     // Try to delete all columns
                     thisTable.columns.drop(colNames);
@@ -522,7 +514,7 @@ exports.db = function (filePath) {
                 },
                 columns: {
                     add: function (cols) {
-                        var e_7, _a, e_8, _b, e_9, _c;
+                        var e_6, _a, e_7, _b, e_8, _c;
                         if (!thisTable.exists) {
                             throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                         }
@@ -536,12 +528,12 @@ exports.db = function (filePath) {
                                 existingCols.set(col.name, col);
                             }
                         }
-                        catch (e_7_1) { e_7 = { error: e_7_1 }; }
+                        catch (e_6_1) { e_6 = { error: e_6_1 }; }
                         finally {
                             try {
                                 if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
                             }
-                            finally { if (e_7) throw e_7.error; }
+                            finally { if (e_6) throw e_6.error; }
                         }
                         try {
                             try {
@@ -556,12 +548,12 @@ exports.db = function (filePath) {
                                     }
                                 }
                             }
-                            catch (e_8_1) { e_8 = { error: e_8_1 }; }
+                            catch (e_7_1) { e_7 = { error: e_7_1 }; }
                             finally {
                                 try {
                                     if (cols_1_1 && !cols_1_1.done && (_b = cols_1.return)) _b.call(cols_1);
                                 }
-                                finally { if (e_8) throw e_8.error; }
+                                finally { if (e_7) throw e_7.error; }
                             }
                             try {
                                 // Add each column
@@ -585,12 +577,12 @@ exports.db = function (filePath) {
                                     table.cols.push(col);
                                 }
                             }
-                            catch (e_9_1) { e_9 = { error: e_9_1 }; }
+                            catch (e_8_1) { e_8 = { error: e_8_1 }; }
                             finally {
                                 try {
                                     if (cols_2_1 && !cols_2_1.done && (_c = cols_2.return)) _c.call(cols_2);
                                 }
-                                finally { if (e_9) throw e_9.error; }
+                                finally { if (e_8) throw e_8.error; }
                             }
                             writeDBFile();
                         }
@@ -602,7 +594,7 @@ exports.db = function (filePath) {
                         }
                     },
                     drop: function (colNames) {
-                        var e_10, _a;
+                        var e_9, _a;
                         if (!thisTable.exists) {
                             throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                         }
@@ -642,12 +634,12 @@ exports.db = function (filePath) {
                                     }
                                 }
                             }
-                            catch (e_10_1) { e_10 = { error: e_10_1 }; }
+                            catch (e_9_1) { e_9 = { error: e_9_1 }; }
                             finally {
                                 try {
                                     if (colNames_2_1 && !colNames_2_1.done && (_a = colNames_2.return)) _a.call(colNames_2);
                                 }
-                                finally { if (e_10) throw e_10.error; }
+                                finally { if (e_9) throw e_9.error; }
                             }
                             writeDBFile();
                         }
@@ -660,7 +652,7 @@ exports.db = function (filePath) {
                     }
                 },
                 insert: function (rows, rowNum) {
-                    var e_11, _a, e_12, _b;
+                    var e_10, _a, e_11, _b;
                     if (!thisTable.exists) {
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
@@ -672,7 +664,7 @@ exports.db = function (filePath) {
                                 var row = rows_1_1.value;
                                 var newRow = [];
                                 var _loop_2 = function (col) {
-                                    var e_13, _a, e_14, _b;
+                                    var e_12, _a, e_13, _b;
                                     var el = row[col.name];
                                     var dataTypeParsedEl = void 0;
                                     // Set to default if undefined
@@ -722,19 +714,19 @@ exports.db = function (filePath) {
                                         if (col.constraints.includes('unique')) {
                                             try {
                                                 // Todo: use memory tricks to make cheking for unique faster
-                                                for (var _c = (e_13 = void 0, __values(thisTable.get().rows)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                                                for (var _c = (e_12 = void 0, __values(thisTable.get().rows)), _d = _c.next(); !_d.done; _d = _c.next()) {
                                                     var row_1 = _d.value;
                                                     if (el == row_1[col.name]) {
                                                         throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('unique') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_1, null, 2)) + ".");
                                                     }
                                                 }
                                             }
-                                            catch (e_13_1) { e_13 = { error: e_13_1 }; }
+                                            catch (e_12_1) { e_12 = { error: e_12_1 }; }
                                             finally {
                                                 try {
                                                     if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
                                                 }
-                                                finally { if (e_13) throw e_13.error; }
+                                                finally { if (e_12) throw e_12.error; }
                                             }
                                         }
                                         // primaryKey
@@ -747,19 +739,19 @@ exports.db = function (filePath) {
                                             // primaryKey + autoIncrement should not interfere with each other
                                             if (!col.constraints.includes('autoIncrement')) {
                                                 try {
-                                                    for (var _e = (e_14 = void 0, __values(thisTable.get().rows)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                                                    for (var _e = (e_13 = void 0, __values(thisTable.get().rows)), _f = _e.next(); !_f.done; _f = _e.next()) {
                                                         var row_2 = _f.value;
                                                         if (el == row_2[col.name]) {
                                                             throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_2, null, 2)) + ".");
                                                         }
                                                     }
                                                 }
-                                                catch (e_14_1) { e_14 = { error: e_14_1 }; }
+                                                catch (e_13_1) { e_13 = { error: e_13_1 }; }
                                                 finally {
                                                     try {
                                                         if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
                                                     }
-                                                    finally { if (e_14) throw e_14.error; }
+                                                    finally { if (e_13) throw e_13.error; }
                                                 }
                                             }
                                         }
@@ -778,17 +770,17 @@ exports.db = function (filePath) {
                                     newRow.push(dataTypeParsedEl.value);
                                 };
                                 try {
-                                    for (var _c = (e_12 = void 0, __values(table.cols)), _d = _c.next(); !_d.done; _d = _c.next()) {
+                                    for (var _c = (e_11 = void 0, __values(table.cols)), _d = _c.next(); !_d.done; _d = _c.next()) {
                                         var col = _d.value;
                                         _loop_2(col);
                                     }
                                 }
-                                catch (e_12_1) { e_12 = { error: e_12_1 }; }
+                                catch (e_11_1) { e_11 = { error: e_11_1 }; }
                                 finally {
                                     try {
                                         if (_d && !_d.done && (_b = _c.return)) _b.call(_c);
                                     }
-                                    finally { if (e_12) throw e_12.error; }
+                                    finally { if (e_11) throw e_11.error; }
                                 }
                                 if (rowNum != undefined) {
                                     // Overwrite
@@ -800,12 +792,12 @@ exports.db = function (filePath) {
                                 }
                             }
                         }
-                        catch (e_11_1) { e_11 = { error: e_11_1 }; }
+                        catch (e_10_1) { e_10 = { error: e_10_1 }; }
                         finally {
                             try {
                                 if (rows_1_1 && !rows_1_1.done && (_a = rows_1.return)) _a.call(rows_1);
                             }
-                            finally { if (e_11) throw e_11.error; }
+                            finally { if (e_10) throw e_10.error; }
                         }
                         writeDBFile();
                     }
@@ -826,6 +818,7 @@ exports.db = function (filePath) {
                     try {
                         for (var i = 0; i < table.rows.length; i++) {
                             var row = table.rows[i];
+                            row.rowNum = i;
                             if (where(row)) {
                                 // Update this row
                                 var insertRow = __assign(__assign({}, row), newRow);
@@ -844,7 +837,7 @@ exports.db = function (filePath) {
                     return updated;
                 },
                 delete: function (where) {
-                    var e_15, _a;
+                    var e_14, _a;
                     if (!thisTable.exists) {
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
@@ -859,27 +852,28 @@ exports.db = function (filePath) {
                             }
                         }
                     }
-                    catch (e_15_1) { e_15 = { error: e_15_1 }; }
+                    catch (e_14_1) { e_14 = { error: e_14_1 }; }
                     finally {
                         try {
                             if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                         }
-                        finally { if (e_15) throw e_15.error; }
+                        finally { if (e_14) throw e_14.error; }
                     }
                     var tableBackup = JSON.parse(JSON.stringify(file.tables[tableName]));
                     var deleted = 0;
                     try {
                         var i = 0;
                         var _loop_3 = function () {
-                            var e_16, _a, e_17, _b;
+                            var e_15, _a, e_16, _b;
                             var rowTryingToDelete = thisTable.get().rows[i];
+                            rowTryingToDelete.rowNum = i;
                             if (rowTryingToDelete == undefined) {
                                 return "break";
                             }
                             if (where(rowTryingToDelete)) {
                                 try {
                                     // Delete this row
-                                    for (var _c = (e_16 = void 0, __values(linkedColumns.entries())), _d = _c.next(); !_d.done; _d = _c.next()) {
+                                    for (var _c = (e_15 = void 0, __values(linkedColumns.entries())), _d = _c.next(); !_d.done; _d = _c.next()) {
                                         var entry = _d.value;
                                         var linkedColName = entry[0];
                                         var linkedCols = entry[1];
@@ -895,26 +889,26 @@ exports.db = function (filePath) {
                                             }
                                         };
                                         try {
-                                            for (var linkedCols_1 = (e_17 = void 0, __values(linkedCols)), linkedCols_1_1 = linkedCols_1.next(); !linkedCols_1_1.done; linkedCols_1_1 = linkedCols_1.next()) {
+                                            for (var linkedCols_1 = (e_16 = void 0, __values(linkedCols)), linkedCols_1_1 = linkedCols_1.next(); !linkedCols_1_1.done; linkedCols_1_1 = linkedCols_1.next()) {
                                                 var linkedCol = linkedCols_1_1.value;
                                                 _loop_4(linkedCol);
                                             }
                                         }
-                                        catch (e_17_1) { e_17 = { error: e_17_1 }; }
+                                        catch (e_16_1) { e_16 = { error: e_16_1 }; }
                                         finally {
                                             try {
                                                 if (linkedCols_1_1 && !linkedCols_1_1.done && (_b = linkedCols_1.return)) _b.call(linkedCols_1);
                                             }
-                                            finally { if (e_17) throw e_17.error; }
+                                            finally { if (e_16) throw e_16.error; }
                                         }
                                     }
                                 }
-                                catch (e_16_1) { e_16 = { error: e_16_1 }; }
+                                catch (e_15_1) { e_15 = { error: e_15_1 }; }
                                 finally {
                                     try {
                                         if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
                                     }
-                                    finally { if (e_16) throw e_16.error; }
+                                    finally { if (e_15) throw e_15.error; }
                                 }
                                 file.tables[tableName].rows.splice(i, 1);
                                 deleted++;
