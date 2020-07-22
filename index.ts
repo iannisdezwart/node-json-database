@@ -10,6 +10,7 @@ export interface DB {
 export interface DB_Table {
 	cols: DB_Table_Col[]
 	rows: DB_Table_Row[]
+	data?: any
 }
 
 export interface DB_Table_Col {
@@ -565,6 +566,16 @@ export const db = (filePath: string) => {
 
 				get colCount() {
 					return file.tables[tableName].cols.length
+				},
+
+				set data(value: any) {
+					file.tables[tableName].data = value
+
+					writeDBFile()
+				},
+
+				get data() {
+					return file.tables[tableName].data
 				},
 
 				columns: {
