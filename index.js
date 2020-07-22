@@ -866,10 +866,10 @@ exports.db = function (filePath) {
                         var _loop_3 = function () {
                             var e_15, _a, e_16, _b;
                             var rowTryingToDelete = thisTable.get().rows[i];
-                            rowTryingToDelete.rowNum = i;
                             if (rowTryingToDelete == undefined) {
                                 return "break";
                             }
+                            rowTryingToDelete.rowNum = i;
                             if (where(rowTryingToDelete)) {
                                 try {
                                     // Delete this row
