@@ -454,10 +454,10 @@ interface DB_Function_Options {
 
 export const db = (filePath: string, options: DB_Function_Options = {}) => {
 	options = {
-		...options,
 		...{
 			safeAndFriendlyErrors: false
-		}
+		},
+		...options
 	}
 	
 	let file: DB = fs.existsSync(filePath)

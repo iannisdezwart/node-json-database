@@ -431,9 +431,9 @@ var dataTypes = {
 };
 exports.db = function (filePath, options) {
     if (options === void 0) { options = {}; }
-    options = __assign(__assign({}, options), {
+    options = __assign({
         safeAndFriendlyErrors: false
-    });
+    }, options);
     var file = fs.existsSync(filePath)
         ? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
         : null;
