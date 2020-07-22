@@ -449,10 +449,10 @@ const dataTypes: {
 }
 
 interface DB_Function_Options {
-	safeAndFriendlyErrors: boolean
+	safeAndFriendlyErrors?: boolean
 }
 
-export const db = (filePath: string, options: DB_Function_Options) => {
+export const db = (filePath: string, options: DB_Function_Options = {}) => {
 	options = {
 		...options,
 		...{

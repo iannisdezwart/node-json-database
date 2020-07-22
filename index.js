@@ -430,6 +430,7 @@ var dataTypes = {
     }(DataTypeClass))
 };
 exports.db = function (filePath, options) {
+    if (options === void 0) { options = {}; }
     options = __assign(__assign({}, options), {
         safeAndFriendlyErrors: false
     });
