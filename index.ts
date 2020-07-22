@@ -448,7 +448,18 @@ const dataTypes: {
 	}
 }
 
-export const db = (filePath: string) => {
+interface DB_Function_Options {
+	safeAndFriendlyErrors: boolean
+}
+
+export const db = (filePath: string, options: DB_Function_Options) => {
+	options = {
+		...options,
+		...{
+			safeAndFriendlyErrors: false
+		}
+	}
+	
 	let file: DB = fs.existsSync(filePath)
 		? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
 		: null
@@ -462,6 +473,10 @@ export const db = (filePath: string) => {
 	const thisDb = {
 		create() {
 			if (file != null) {
+				if (options.safeAndFriendlyErrors) {
+					throw new Error(`This database already exists.`)
+				}
+
 				throw new Error(`Database ${ chalk.cyan(filePath) } already exists.`)
 			}
 
@@ -474,6 +489,10 @@ export const db = (filePath: string) => {
 
 		drop() {
 			if (file == null) {
+				if (options.safeAndFriendlyErrors) {
+					throw new Error(`This database does not exist.`)
+				}
+
 				throw new Error(`Database ${ chalk.cyan(filePath) } does not exist.`)
 			}
 
@@ -484,6 +503,10 @@ export const db = (filePath: string) => {
 
 		copy(newFilePath: string) {
 			if (fs.existsSync(newFilePath)) {
+				if (options.safeAndFriendlyErrors) {
+					throw new Error(`That database already exists. Cannot copy to an existing database.`)
+				}
+
 				throw new Error(`Database ${ chalk.cyan(newFilePath) } already exists. Cannot copy to an existing database.`)
 			}
 
@@ -506,6 +529,10 @@ export const db = (filePath: string) => {
 
 		table(tableName: string) {
 			if (file == null) {
+				if (options.safeAndFriendlyErrors) {
+					throw new Error(`This database doesn not exist.`)
+				}
+
 				throw new Error(`Database ${ chalk.cyan(filePath) } does not exist.`)
 			}
 
@@ -518,6 +545,10 @@ export const db = (filePath: string) => {
 
 				create() {
 					if (thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" already exists in this database`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } already exists in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -532,6 +563,10 @@ export const db = (filePath: string) => {
 				
 				drop() {
 					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -554,6 +589,10 @@ export const db = (filePath: string) => {
 
 				get() {
 					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -581,6 +620,10 @@ export const db = (filePath: string) => {
 				columns: {
 					add(cols: DB_Table_Col[]) {
 						if (!thisTable.exists) {
+							if (options.safeAndFriendlyErrors) {
+								throw new Error(`The table "${ tableName }" does not exist in this database`)
+							}
+
 							throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 						}
 
@@ -599,10 +642,18 @@ export const db = (filePath: string) => {
 
 							for (let col of cols) {
 								if (col.name == undefined || col.dataType == undefined) {
+									if (options.safeAndFriendlyErrors) {
+										throw new Error(`A column should have at least the 'name' and 'dataType' properties. You specified this:\n${ JSON.stringify(col, null, 2) }`)
+									}
+
 									throw new Error(`A column should have at least the 'name' and 'dataType' properties. Got: ${ chalk.red(JSON.stringify(col, null, 2)) }.`)
 								}
 
 								if (existingCols.has(col.name)) {
+									if (options.safeAndFriendlyErrors) {
+										throw new Error(`The column "${ col.name }" already exists in this table.`)
+									}
+
 									throw new Error(`Column ${ chalk.yellow(col.name) } already exists in table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }.`)
 								}
 							}
@@ -618,10 +669,18 @@ export const db = (filePath: string) => {
 									const foreignCol = thisDb.table(foreignKey.table).get().getCol(foreignKey.column)
 									
 									if (foreignCol.constraints == undefined) {
+										if (options.safeAndFriendlyErrors) {
+											throw new Error(`The column "${ col.name }" could not be added to this table because you specified that the values should be linked with the (foreign) column "${ foreignKey.column }" of the table "${ foreignKey.table }". The latter column does not have the 'primaryKey' constraint, which is required to do this.`)
+										}
+
 										throw new Error(`Could not add column ${ chalk.yellow(col.name) } to table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because its foreignKey links to a non-primaryKey column. column ${ foreignKey.column } of table ${ foreignKey.table } must have the primaryKey constraint.`)
 									}
 
 									if (!foreignCol.constraints.includes('primaryKey')) {
+										if (options.safeAndFriendlyErrors) {
+											throw new Error(`The column "${ col.name }" could not be added to this table because you specified that the values should be linked with the (foreign) column "${ foreignKey.column }" of the table "${ foreignKey.table }". The latter column does not have the 'primaryKey' constraint, which is required to do this.`)
+										}
+
 										throw new Error(`Could not add column ${ chalk.yellow(col.name) } to table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because its foreignKey links to a non-primaryKey column. column ${ foreignKey.column } of table ${ foreignKey.table } must have the primaryKey constraint.`)
 									}
 
@@ -649,6 +708,10 @@ export const db = (filePath: string) => {
 
 					drop(colNames: string[]) {
 						if (!thisTable.exists) {
+							if (options.safeAndFriendlyErrors) {
+								throw new Error(`The table "${ tableName }" does not exist in this database`)
+							}
+
 							throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 						}
 
@@ -660,6 +723,10 @@ export const db = (filePath: string) => {
 								const col = table.getCol(colName)
 	
 								if (col == undefined) {
+									if (options.safeAndFriendlyErrors) {
+										throw new Error(`You cannot drop the column "${ colName }", since it does not exist in this table.`)
+									}
+
 									throw new Error(`Column ${ chalk.yellow(colName) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) } does not exist.`)
 								}
 	
@@ -669,7 +736,11 @@ export const db = (filePath: string) => {
 	
 								if (linkedWith != undefined) {
 									if (linkedWith.length > 0) {
-										throw new Error(`Could not drop column ${ colName } because it is a primaryKey linked to these columns:\n${ chalk.cyan(JSON.stringify(linkedWith, null, 2)) }\nIn order to drop this column, you must drop those columns first.`)
+										if (options.safeAndFriendlyErrors) {
+											throw new Error(`You cannot drop the column "${ colName }", since it is linked to these columns:\n${ linkedWith.map(link => `Column "${ link.column }" of Table "${ link.table }"`).join(', and ') }.\nIn order to drop this column, you must drop the columns it is linked to first.`)
+										}
+
+										throw new Error(`Could not drop column ${ chalk.yellow(colName) } because it is a primaryKey linked to these columns:\n${ chalk.cyan(JSON.stringify(linkedWith, null, 2)) }\nIn order to drop this column, you must drop the columns it is linked to first.`)
 									}
 								}
 	
@@ -713,6 +784,10 @@ export const db = (filePath: string) => {
 
 				insert(rows: DB_Table_Row_Formatted[], rowNum?: number) {
 					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database.`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -738,6 +813,10 @@ export const db = (filePath: string) => {
 								try {
 									dataTypeParsedEl = new dataTypes[col.dataType](el)
 								} catch(err) {
+									if (options.safeAndFriendlyErrors) {
+										throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because it could not be converted to dataType "${ col.dataType }"`)
+									}
+
 									throw new Error(`Could not insert value ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, beacuse it could not be converted to dataType ${ chalk.green(col.dataType) }.`)
 								}
 								
@@ -768,7 +847,11 @@ export const db = (filePath: string) => {
 												: Infinity
 
 										if (el < prevNumber && el > nextNumber) {
-											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } ${ (rowNum != undefined) ? `at row at index ${ rowNum }` : '' } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }`)
+											if (options.safeAndFriendlyErrors) {
+												throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'autoIncrement' constraint. Just leave this field empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
+											}
+
+											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } ${ (rowNum != undefined) ? `at row at index ${ rowNum }` : '' } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
 										}
 
 										dataTypeParsedEl = new dataTypes.Int(el)
@@ -780,6 +863,10 @@ export const db = (filePath: string) => {
 										// Todo: Should a notNull column be able to have a default value?
 
 										if (el == undefined) {
+											if (options.safeAndFriendlyErrors) {
+												throw new Error(`Could not insert en empty value into the column "${ col.name }" of this table, since this column has the 'autoIncrement' constraint. Fill in this column`)
+											}
+
 											throw new Error(`Could not insert ${ chalk.red('null') } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Fill in this column.`)
 										}
 									}
@@ -791,6 +878,10 @@ export const db = (filePath: string) => {
 
 										for (let row of thisTable.get().rows) {
 											if (el == row[col.name]) {
+												if (options.safeAndFriendlyErrors) {
+													throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
+												}
+
 												throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('unique') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 											}
 										}
@@ -802,7 +893,11 @@ export const db = (filePath: string) => {
 										// Check for notNull
 
 										if (el == undefined) {
-											throw new Error(`Could not insert ${ chalk.red('null') } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Fill in this column.`)
+											if (options.safeAndFriendlyErrors) {
+												throw new Error(`Could not insert en empty value into the column "${ col.name }" of this table, since this column has the 'primaryKey' constraint. Fill in this column`)
+											}
+
+											throw new Error(`Could not insert ${ chalk.red('null') } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('primaryKey') } constraint. Fill in this column.`)
 										}
 
 										// Check for unique
@@ -813,7 +908,11 @@ export const db = (filePath: string) => {
 											for (let row of thisTable.get().rows) {
 	
 												if (el == row[col.name]) {
-													throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
+													if (options.safeAndFriendlyErrors) {
+														throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
+													}
+
+													throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('primaryKey') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 												}
 											}
 										}
@@ -831,6 +930,10 @@ export const db = (filePath: string) => {
 										.where(row => row[col.name] == el)
 
 									if (foreignValue == undefined) {
+										if (options.safeAndFriendlyErrors) {
+											throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column linked with the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.table }". This means that the value you put in this field should also exist in the latter column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value "${ el }" into the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.column }".`)
+										}
+
 										throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has a foreignKey to table '${ col.foreignKey.table }', column '${ col.foreignKey.column }'. This value was not found in the foreign column.`)
 									}
 								}
@@ -864,6 +967,10 @@ export const db = (filePath: string) => {
 
 				update(newRow: DB_Table_Row_Formatted, where: RowFilterFunction) {
 					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -901,6 +1008,10 @@ export const db = (filePath: string) => {
 
 				delete(where: RowFilterFunction) {
 					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database`)
+						}
+
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
@@ -952,7 +1063,11 @@ export const db = (filePath: string) => {
 										// Throw error if the value exists
 
 										if (search.rows.length > 0) {
-											throw new Error(`Could not delete row\n${ chalk.red(JSON.stringify(rowTryingToDelete, null, 2)) }\nfrom column ${ chalk.yellow(linkedColName) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column is linked to a foreignKey from column ${ chalk.yellow(linkedCol.column) }, from table ${ chalk.magenta(linkedCol.table) }. The following dependent records were found in the linked column. First remove those records:\n${ chalk.red(foundValues) }`)
+											if (options.safeAndFriendlyErrors) {
+												throw new Error(`Could not delete the following row:\n${ JSON.stringify(rowTryingToDelete, null, 2) }\n from this table, since the column "${ linkedColName }" (which holds the value "${ rowTryingToDelete[linkedColName] }") is linked to the (foreign) column "${ linkedCol.column }" of the table "${ linkedCol.table }". The latter column is dependent on this value.\n\nIn order to delte the value "${ rowTryingToDelete[linkedColName] }" from the column "${ linkedColName }" in this table, first delete these rows from the table "${ linkedCol.table }":\n${ foundValues }.`)
+											}
+
+											throw new Error(`Could not delete row\n${ chalk.red(JSON.stringify(rowTryingToDelete, null, 2)) }\nfrom column ${ chalk.yellow(linkedColName) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column is linked to a foreignKey from column ${ chalk.yellow(linkedCol.column) }, from table ${ chalk.magenta(linkedCol.table) }. The following dependent records were found in the linked column. First remove those records:\n${ chalk.red(foundValues) }.`)
 										}
 									}
 								}

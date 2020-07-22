@@ -429,7 +429,10 @@ var dataTypes = {
         return DataType_JSON;
     }(DataTypeClass))
 };
-exports.db = function (filePath) {
+exports.db = function (filePath, options) {
+    options = __assign(__assign({}, options), {
+        safeAndFriendlyErrors: false
+    });
     var file = fs.existsSync(filePath)
         ? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
         : null;
@@ -440,6 +443,9 @@ exports.db = function (filePath) {
     var thisDb = {
         create: function () {
             if (file != null) {
+                if (options.safeAndFriendlyErrors) {
+                    throw new Error("This database already exists.");
+                }
                 throw new Error("Database " + chalk.cyan(filePath) + " already exists.");
             }
             file = {
@@ -449,6 +455,9 @@ exports.db = function (filePath) {
         },
         drop: function () {
             if (file == null) {
+                if (options.safeAndFriendlyErrors) {
+                    throw new Error("This database does not exist.");
+                }
                 throw new Error("Database " + chalk.cyan(filePath) + " does not exist.");
             }
             file = null;
@@ -456,6 +465,9 @@ exports.db = function (filePath) {
         },
         copy: function (newFilePath) {
             if (fs.existsSync(newFilePath)) {
+                if (options.safeAndFriendlyErrors) {
+                    throw new Error("That database already exists. Cannot copy to an existing database.");
+                }
                 throw new Error("Database " + chalk.cyan(newFilePath) + " already exists. Cannot copy to an existing database.");
             }
             fs.writeFileSync(newFilePath, JSON.stringify(file, null, 2));
@@ -472,6 +484,9 @@ exports.db = function (filePath) {
         },
         table: function (tableName) {
             if (file == null) {
+                if (options.safeAndFriendlyErrors) {
+                    throw new Error("This database doesn not exist.");
+                }
                 throw new Error("Database " + chalk.cyan(filePath) + " does not exist.");
             }
             // Returns thisTable
@@ -481,6 +496,9 @@ exports.db = function (filePath) {
                 },
                 create: function () {
                     if (thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" already exists in this database");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " already exists in database " + chalk.cyan(filePath) + ".");
                     }
                     if (file.tables == undefined) {
@@ -492,6 +510,9 @@ exports.db = function (filePath) {
                 drop: function () {
                     var e_5, _a;
                     if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
                     var table = new Table(file.tables[tableName]);
@@ -516,6 +537,9 @@ exports.db = function (filePath) {
                 },
                 get: function () {
                     if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
                     return new Table(file.tables[tableName]);
@@ -537,6 +561,9 @@ exports.db = function (filePath) {
                     add: function (cols) {
                         var e_6, _a, e_7, _b, e_8, _c;
                         if (!thisTable.exists) {
+                            if (options.safeAndFriendlyErrors) {
+                                throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                            }
                             throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                         }
                         // Create map of existing table columns
@@ -562,9 +589,15 @@ exports.db = function (filePath) {
                                 for (var cols_1 = __values(cols), cols_1_1 = cols_1.next(); !cols_1_1.done; cols_1_1 = cols_1.next()) {
                                     var col = cols_1_1.value;
                                     if (col.name == undefined || col.dataType == undefined) {
+                                        if (options.safeAndFriendlyErrors) {
+                                            throw new Error("A column should have at least the 'name' and 'dataType' properties. You specified this:\n" + JSON.stringify(col, null, 2));
+                                        }
                                         throw new Error("A column should have at least the 'name' and 'dataType' properties. Got: " + chalk.red(JSON.stringify(col, null, 2)) + ".");
                                     }
                                     if (existingCols.has(col.name)) {
+                                        if (options.safeAndFriendlyErrors) {
+                                            throw new Error("The column \"" + col.name + "\" already exists in this table.");
+                                        }
                                         throw new Error("Column " + chalk.yellow(col.name) + " already exists in table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ".");
                                     }
                                 }
@@ -585,9 +618,15 @@ exports.db = function (filePath) {
                                     if (foreignKey != undefined) {
                                         var foreignCol = thisDb.table(foreignKey.table).get().getCol(foreignKey.column);
                                         if (foreignCol.constraints == undefined) {
+                                            if (options.safeAndFriendlyErrors) {
+                                                throw new Error("The column \"" + col.name + "\" could not be added to this table because you specified that the values should be linked with the (foreign) column \"" + foreignKey.column + "\" of the table \"" + foreignKey.table + "\". The latter column does not have the 'primaryKey' constraint, which is required to do this.");
+                                            }
                                             throw new Error("Could not add column " + chalk.yellow(col.name) + " to table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because its foreignKey links to a non-primaryKey column. column " + foreignKey.column + " of table " + foreignKey.table + " must have the primaryKey constraint.");
                                         }
                                         if (!foreignCol.constraints.includes('primaryKey')) {
+                                            if (options.safeAndFriendlyErrors) {
+                                                throw new Error("The column \"" + col.name + "\" could not be added to this table because you specified that the values should be linked with the (foreign) column \"" + foreignKey.column + "\" of the table \"" + foreignKey.table + "\". The latter column does not have the 'primaryKey' constraint, which is required to do this.");
+                                            }
                                             throw new Error("Could not add column " + chalk.yellow(col.name) + " to table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because its foreignKey links to a non-primaryKey column. column " + foreignKey.column + " of table " + foreignKey.table + " must have the primaryKey constraint.");
                                         }
                                         if (foreignCol.linkedWith == undefined) {
@@ -617,6 +656,9 @@ exports.db = function (filePath) {
                     drop: function (colNames) {
                         var e_9, _a;
                         if (!thisTable.exists) {
+                            if (options.safeAndFriendlyErrors) {
+                                throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                            }
                             throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                         }
                         var table = thisTable.get();
@@ -627,13 +669,19 @@ exports.db = function (filePath) {
                                     var colName = colNames_2_1.value;
                                     var col = table.getCol(colName);
                                     if (col == undefined) {
+                                        if (options.safeAndFriendlyErrors) {
+                                            throw new Error("You cannot drop the column \"" + colName + "\", since it does not exist in this table.");
+                                        }
                                         throw new Error("Column " + chalk.yellow(colName) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + " does not exist.");
                                     }
                                     // Check linkedWith relations
                                     var linkedWith = col.linkedWith, foreignKey = col.foreignKey;
                                     if (linkedWith != undefined) {
                                         if (linkedWith.length > 0) {
-                                            throw new Error("Could not drop column " + colName + " because it is a primaryKey linked to these columns:\n" + chalk.cyan(JSON.stringify(linkedWith, null, 2)) + "\nIn order to drop this column, you must drop those columns first.");
+                                            if (options.safeAndFriendlyErrors) {
+                                                throw new Error("You cannot drop the column \"" + colName + "\", since it is linked to these columns:\n" + linkedWith.map(function (link) { return "Column \"" + link.column + "\" of Table \"" + link.table + "\""; }).join(', and ') + ".\nIn order to drop this column, you must drop the columns it is linked to first.");
+                                            }
+                                            throw new Error("Could not drop column " + chalk.yellow(colName) + " because it is a primaryKey linked to these columns:\n" + chalk.cyan(JSON.stringify(linkedWith, null, 2)) + "\nIn order to drop this column, you must drop the columns it is linked to first.");
                                         }
                                     }
                                     // Unlink foreignKey relation, if necessary
@@ -675,6 +723,9 @@ exports.db = function (filePath) {
                 insert: function (rows, rowNum) {
                     var e_10, _a, e_11, _b;
                     if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database.");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
                     var table = thisTable.get();
@@ -697,6 +748,9 @@ exports.db = function (filePath) {
                                         dataTypeParsedEl = new dataTypes[col.dataType](el);
                                     }
                                     catch (err) {
+                                        if (options.safeAndFriendlyErrors) {
+                                            throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because it could not be converted to dataType \"" + col.dataType + "\"");
+                                        }
                                         throw new Error("Could not insert value " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", beacuse it could not be converted to dataType " + chalk.green(col.dataType) + ".");
                                     }
                                     // Check constraints
@@ -720,7 +774,10 @@ exports.db = function (filePath) {
                                                     ? table_1.rows[rowNum + 1][col.name]
                                                     : Infinity;
                                             if (el < prevNumber && el > nextNumber) {
-                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum : '') + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber);
+                                                if (options.safeAndFriendlyErrors) {
+                                                    throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave this field empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
+                                                }
+                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum : '') + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
                                             }
                                             dataTypeParsedEl = new dataTypes.Int(el);
                                         }
@@ -728,6 +785,9 @@ exports.db = function (filePath) {
                                         if (col.constraints.includes('notNull')) {
                                             // Todo: Should a notNull column be able to have a default value?
                                             if (el == undefined) {
+                                                if (options.safeAndFriendlyErrors) {
+                                                    throw new Error("Could not insert en empty value into the column \"" + col.name + "\" of this table, since this column has the 'autoIncrement' constraint. Fill in this column");
+                                                }
                                                 throw new Error("Could not insert " + chalk.red('null') + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Fill in this column.");
                                             }
                                         }
@@ -738,6 +798,9 @@ exports.db = function (filePath) {
                                                 for (var _c = (e_12 = void 0, __values(thisTable.get().rows)), _d = _c.next(); !_d.done; _d = _c.next()) {
                                                     var row_1 = _d.value;
                                                     if (el == row_1[col.name]) {
+                                                        if (options.safeAndFriendlyErrors) {
+                                                            throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_1, null, 2) + ".");
+                                                        }
                                                         throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('unique') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_1, null, 2)) + ".");
                                                     }
                                                 }
@@ -754,7 +817,10 @@ exports.db = function (filePath) {
                                         if (col.constraints.includes('primaryKey')) {
                                             // Check for notNull
                                             if (el == undefined) {
-                                                throw new Error("Could not insert " + chalk.red('null') + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Fill in this column.");
+                                                if (options.safeAndFriendlyErrors) {
+                                                    throw new Error("Could not insert en empty value into the column \"" + col.name + "\" of this table, since this column has the 'primaryKey' constraint. Fill in this column");
+                                                }
+                                                throw new Error("Could not insert " + chalk.red('null') + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('primaryKey') + " constraint. Fill in this column.");
                                             }
                                             // Check for unique
                                             // primaryKey + autoIncrement should not interfere with each other
@@ -763,7 +829,10 @@ exports.db = function (filePath) {
                                                     for (var _e = (e_13 = void 0, __values(thisTable.get().rows)), _f = _e.next(); !_f.done; _f = _e.next()) {
                                                         var row_2 = _f.value;
                                                         if (el == row_2[col.name]) {
-                                                            throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_2, null, 2)) + ".");
+                                                            if (options.safeAndFriendlyErrors) {
+                                                                throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_2, null, 2) + ".");
+                                                            }
+                                                            throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('primaryKey') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_2, null, 2)) + ".");
                                                         }
                                                     }
                                                 }
@@ -785,6 +854,9 @@ exports.db = function (filePath) {
                                             .get()
                                             .where(function (row) { return row[col.name] == el; });
                                         if (foreignValue == undefined) {
+                                            if (options.safeAndFriendlyErrors) {
+                                                throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column linked with the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.table + "\". This means that the value you put in this field should also exist in the latter column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value \"" + el + "\" into the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.column + "\".");
+                                            }
                                             throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has a foreignKey to table '" + col.foreignKey.table + "', column '" + col.foreignKey.column + "'. This value was not found in the foreign column.");
                                         }
                                     }
@@ -831,6 +903,9 @@ exports.db = function (filePath) {
                 },
                 update: function (newRow, where) {
                     if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
                     var table = thisTable.get();
@@ -860,6 +935,9 @@ exports.db = function (filePath) {
                 delete: function (where) {
                     var e_14, _a;
                     if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                        }
                         throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
                     }
                     var table = thisTable.get();
@@ -906,7 +984,10 @@ exports.db = function (filePath) {
                                             var foundValues = JSON.stringify(search.rows, null, 2);
                                             // Throw error if the value exists
                                             if (search.rows.length > 0) {
-                                                throw new Error("Could not delete row\n" + chalk.red(JSON.stringify(rowTryingToDelete, null, 2)) + "\nfrom column " + chalk.yellow(linkedColName) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column is linked to a foreignKey from column " + chalk.yellow(linkedCol.column) + ", from table " + chalk.magenta(linkedCol.table) + ". The following dependent records were found in the linked column. First remove those records:\n" + chalk.red(foundValues));
+                                                if (options.safeAndFriendlyErrors) {
+                                                    throw new Error("Could not delete the following row:\n" + JSON.stringify(rowTryingToDelete, null, 2) + "\n from this table, since the column \"" + linkedColName + "\" (which holds the value \"" + rowTryingToDelete[linkedColName] + "\") is linked to the (foreign) column \"" + linkedCol.column + "\" of the table \"" + linkedCol.table + "\". The latter column is dependent on this value.\n\nIn order to delte the value \"" + rowTryingToDelete[linkedColName] + "\" from the column \"" + linkedColName + "\" in this table, first delete these rows from the table \"" + linkedCol.table + "\":\n" + foundValues + ".");
+                                                }
+                                                throw new Error("Could not delete row\n" + chalk.red(JSON.stringify(rowTryingToDelete, null, 2)) + "\nfrom column " + chalk.yellow(linkedColName) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column is linked to a foreignKey from column " + chalk.yellow(linkedCol.column) + ", from table " + chalk.magenta(linkedCol.table) + ". The following dependent records were found in the linked column. First remove those records:\n" + chalk.red(foundValues) + ".");
                                             }
                                         };
                                         try {
