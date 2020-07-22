@@ -436,6 +436,7 @@ exports.db = function (filePath) {
     var writeDBFile = function () {
         fs.writeFileSync(filePath, JSON.stringify(file, null, 2));
     };
+    // Returns thisDb
     var thisDb = {
         create: function () {
             if (file != null) {
@@ -461,6 +462,13 @@ exports.db = function (filePath) {
         },
         get exists() {
             return file != null;
+        },
+        getTables: function () {
+            var tableNames = [];
+            for (var tableName in file.tables) {
+                tableNames.push(tableName);
+            }
+            return tableNames;
         },
         table: function (tableName) {
             if (file == null) {
