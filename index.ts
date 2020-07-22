@@ -455,6 +455,8 @@ export const db = (filePath: string) => {
 	const writeDBFile = () => {
 		fs.writeFileSync(filePath, JSON.stringify(file, null, 2))
 	}
+
+	// Returns thisDb
 	
 	const thisDb = {
 		create() {
@@ -489,6 +491,16 @@ export const db = (filePath: string) => {
 
 		get exists() {
 			return file != null
+		},
+
+		getTables() {
+			const tableNames: string[] = []
+
+			for (let tableName in file.tables) {
+				tableNames.push(tableName)
+			}
+
+			return tableNames
 		},
 
 		table(tableName: string) {
