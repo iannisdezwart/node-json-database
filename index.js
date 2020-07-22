@@ -526,6 +526,13 @@ exports.db = function (filePath) {
                 get colCount() {
                     return file.tables[tableName].cols.length;
                 },
+                set data(value) {
+                    file.tables[tableName].data = value;
+                    writeDBFile();
+                },
+                get data() {
+                    return file.tables[tableName].data;
+                },
                 columns: {
                     add: function (cols) {
                         var e_6, _a, e_7, _b, e_8, _c;
