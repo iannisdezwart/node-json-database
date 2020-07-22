@@ -893,13 +893,13 @@ export const db = (filePath: string) => {
 
 						while (true) {
 							const rowTryingToDelete = thisTable.get().rows[i]
-							rowTryingToDelete.rowNum = i
-
 							if (rowTryingToDelete == undefined) {
 								// We reached the end of the table
 
 								break
 							}
+
+							rowTryingToDelete.rowNum = i
 
 							if (where(rowTryingToDelete)) {
 								// Delete this row
