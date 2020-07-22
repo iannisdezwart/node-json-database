@@ -559,6 +559,14 @@ export const db = (filePath: string) => {
 					return new Table(file.tables[tableName])
 				},
 
+				get rowCount() {
+					return file.tables[tableName].rows.length
+				},
+
+				get colCount() {
+					return file.tables[tableName].cols.length
+				},
+
 				columns: {
 					add(cols: DB_Table_Col[]) {
 						if (!thisTable.exists) {

@@ -520,6 +520,12 @@ exports.db = function (filePath) {
                     }
                     return new Table(file.tables[tableName]);
                 },
+                get rowCount() {
+                    return file.tables[tableName].rows.length;
+                },
+                get colCount() {
+                    return file.tables[tableName].cols.length;
+                },
                 columns: {
                     add: function (cols) {
                         var e_6, _a, e_7, _b, e_8, _c;
