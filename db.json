@@ -1,0 +1,105 @@
+{
+  "tables": {
+    "myTable": {
+      "cols": [
+        {
+          "name": "ID",
+          "dataType": "Int",
+          "constraints": [
+            "primaryKey",
+            "autoIncrement"
+          ]
+        },
+        {
+          "name": "firstName",
+          "dataType": "String",
+          "constraints": [
+            "notNull"
+          ]
+        },
+        {
+          "name": "lastName",
+          "dataType": "String",
+          "constraints": [
+            "notNull"
+          ]
+        },
+        {
+          "name": "age",
+          "dataType": "Int"
+        },
+        {
+          "name": "country",
+          "dataType": "String",
+          "constraints": [
+            "notNull",
+            "unique"
+          ]
+        }
+      ],
+      "rows": [
+        [
+          1,
+          "Mark",
+          "Rutte",
+          53,
+          "NL"
+        ],
+        [
+          2,
+          "Donald",
+          "Trump",
+          74,
+          "US"
+        ],
+        [
+          3,
+          "Vladimir",
+          "Putin",
+          67,
+          "RU"
+        ],
+        [
+          4,
+          "Emmanuel",
+          "Macron",
+          42,
+          "FR"
+        ],
+        [
+          5,
+          "Jinping",
+          "Xi",
+          67,
+          "CN"
+        ],
+        [
+          6,
+          "Jong-un",
+          "Kim",
+          36,
+          "KP"
+        ],
+        [
+          7,
+          "Jair",
+          "Bolsonaro",
+          65,
+          "BR"
+        ],
+        [
+          8,
+          "Boris",
+          "Johnson",
+          56,
+          "UK"
+        ]
+      ],
+      "data": {
+        "filters": {
+          "Young People": "({ age }) => age < 50"
+        }
+      }
+    }
+  }
+}

@@ -846,12 +846,14 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 												? table.rows[rowNum + 1][col.name]
 												: Infinity
 
-										if (el < prevNumber && el > nextNumber) {
+										console.log(prevNumber, nextNumber, el)
+
+										if (!(el > prevNumber && el < nextNumber)) {
 											if (options.safeAndFriendlyErrors) {
-												throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'autoIncrement' constraint. Just leave this field empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
+												throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'autoIncrement' constraint. Just leave "${ el }" empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
 											}
 
-											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } ${ (rowNum != undefined) ? `at row at index ${ rowNum }` : '' } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
+											throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } ${ (rowNum != undefined) ? `at row at index ${ rowNum } ` : '' }of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('autoIncrement') } constraint. Leave this column empty or insert a value bigger than ${ prevNumber } and smaller than ${ nextNumber }.`)
 										}
 
 										dataTypeParsedEl = new dataTypes.Int(el)
@@ -874,14 +876,18 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 									// unique
 
 									if (col.constraints.includes('unique')) {
-										// Todo: use memory tricks to make cheking for unique faster
+										// Todo: use memory tricks to make checking for unique faster
 
-										for (let row of thisTable.get().rows) {
-											if (el == row[col.name]) {
+										const { rows } = thisTable.get()
+ 
+										for (let i = 0; i < rows.length; i++) {
+											const row = rows[i]
+
+											if (el == row[col.name] && rowNum != i) {
 												if (options.safeAndFriendlyErrors) {
 													throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
 												}
-
+	
 												throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('unique') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 											}
 										}
@@ -905,13 +911,16 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 										// primaryKey + autoIncrement should not interfere with each other
 
 										if (!col.constraints.includes('autoIncrement')) {
-											for (let row of thisTable.get().rows) {
+											const { rows } = thisTable.get()
+
+											for (let i = 0; i < rows.length; i++) {
+												const row = rows[i]
 	
-												if (el == row[col.name]) {
+												if (el == row[col.name] && rowNum != i) {
 													if (options.safeAndFriendlyErrors) {
 														throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
 													}
-
+		
 													throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('primaryKey') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 												}
 											}
@@ -931,7 +940,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 									if (foreignValue == undefined) {
 										if (options.safeAndFriendlyErrors) {
-											throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column linked with the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.table }". This means that the value you put in this field should also exist in the latter column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value "${ el }" into the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.column }".`)
+											throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column linked with the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.table }". This means that the value you put in "${ el }" should also exist in the other column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value "${ el }" into the (foreign) column "${ col.foreignKey.column }" of the table "${ col.foreignKey.column }".`)
 										}
 
 										throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has a foreignKey to table '${ col.foreignKey.table }', column '${ col.foreignKey.column }'. This value was not found in the foreign column.`)

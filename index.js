@@ -737,7 +737,6 @@ exports.db = function (filePath, options) {
                                 var row = rows_1_1.value;
                                 var newRow = [];
                                 var _loop_2 = function (col) {
-                                    var e_12, _a, e_13, _b;
                                     var el = row[col.name];
                                     var dataTypeParsedEl = void 0;
                                     // Set to default if undefined
@@ -774,11 +773,12 @@ exports.db = function (filePath, options) {
                                                 : (rowNum < table_1.rows.length - 1)
                                                     ? table_1.rows[rowNum + 1][col.name]
                                                     : Infinity;
-                                            if (el < prevNumber && el > nextNumber) {
+                                            console.log(prevNumber, nextNumber, el);
+                                            if (!(el > prevNumber && el < nextNumber)) {
                                                 if (options.safeAndFriendlyErrors) {
-                                                    throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave this field empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
+                                                    throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave \"" + el + "\" empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
                                                 }
-                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum : '') + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
+                                                throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum + " " : '') + "of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
                                             }
                                             dataTypeParsedEl = new dataTypes.Int(el);
                                         }
@@ -794,24 +794,16 @@ exports.db = function (filePath, options) {
                                         }
                                         // unique
                                         if (col.constraints.includes('unique')) {
-                                            try {
-                                                // Todo: use memory tricks to make cheking for unique faster
-                                                for (var _c = (e_12 = void 0, __values(thisTable.get().rows)), _d = _c.next(); !_d.done; _d = _c.next()) {
-                                                    var row_1 = _d.value;
-                                                    if (el == row_1[col.name]) {
-                                                        if (options.safeAndFriendlyErrors) {
-                                                            throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_1, null, 2) + ".");
-                                                        }
-                                                        throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('unique') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_1, null, 2)) + ".");
+                                            // Todo: use memory tricks to make checking for unique faster
+                                            var rows_2 = thisTable.get().rows;
+                                            for (var i = 0; i < rows_2.length; i++) {
+                                                var row_1 = rows_2[i];
+                                                if (el == row_1[col.name] && rowNum != i) {
+                                                    if (options.safeAndFriendlyErrors) {
+                                                        throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_1, null, 2) + ".");
                                                     }
+                                                    throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('unique') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_1, null, 2)) + ".");
                                                 }
-                                            }
-                                            catch (e_12_1) { e_12 = { error: e_12_1 }; }
-                                            finally {
-                                                try {
-                                                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
-                                                }
-                                                finally { if (e_12) throw e_12.error; }
                                             }
                                         }
                                         // primaryKey
@@ -826,23 +818,15 @@ exports.db = function (filePath, options) {
                                             // Check for unique
                                             // primaryKey + autoIncrement should not interfere with each other
                                             if (!col.constraints.includes('autoIncrement')) {
-                                                try {
-                                                    for (var _e = (e_13 = void 0, __values(thisTable.get().rows)), _f = _e.next(); !_f.done; _f = _e.next()) {
-                                                        var row_2 = _f.value;
-                                                        if (el == row_2[col.name]) {
-                                                            if (options.safeAndFriendlyErrors) {
-                                                                throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_2, null, 2) + ".");
-                                                            }
-                                                            throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('primaryKey') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_2, null, 2)) + ".");
+                                                var rows_3 = thisTable.get().rows;
+                                                for (var i = 0; i < rows_3.length; i++) {
+                                                    var row_2 = rows_3[i];
+                                                    if (el == row_2[col.name] && rowNum != i) {
+                                                        if (options.safeAndFriendlyErrors) {
+                                                            throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value \"" + el + "\" has already been entered in this row:\n" + JSON.stringify(row_2, null, 2) + ".");
                                                         }
+                                                        throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('primaryKey') + " constraint. The value has already been entered in this row:\n" + chalk.red(JSON.stringify(row_2, null, 2)) + ".");
                                                     }
-                                                }
-                                                catch (e_13_1) { e_13 = { error: e_13_1 }; }
-                                                finally {
-                                                    try {
-                                                        if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
-                                                    }
-                                                    finally { if (e_13) throw e_13.error; }
                                                 }
                                             }
                                         }
@@ -856,7 +840,7 @@ exports.db = function (filePath, options) {
                                             .where(function (row) { return row[col.name] == el; });
                                         if (foreignValue == undefined) {
                                             if (options.safeAndFriendlyErrors) {
-                                                throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column linked with the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.table + "\". This means that the value you put in this field should also exist in the latter column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value \"" + el + "\" into the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.column + "\".");
+                                                throw new Error("Could not insert the value \"" + el + "\" into the column \"" + col.name + "\" of this table, since this column linked with the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.table + "\". This means that the value you put in \"" + el + "\" should also exist in the other column. This is not the case.\n\nIn order to insert this value here, first insert a row with the value \"" + el + "\" into the (foreign) column \"" + col.foreignKey.column + "\" of the table \"" + col.foreignKey.column + "\".");
                                             }
                                             throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has a foreignKey to table '" + col.foreignKey.table + "', column '" + col.foreignKey.column + "'. This value was not found in the foreign column.");
                                         }
@@ -934,7 +918,7 @@ exports.db = function (filePath, options) {
                     return updated;
                 },
                 delete: function (where) {
-                    var e_14, _a;
+                    var e_12, _a;
                     if (!thisTable.exists) {
                         if (options.safeAndFriendlyErrors) {
                             throw new Error("The table \"" + tableName + "\" does not exist in this database");
@@ -952,19 +936,19 @@ exports.db = function (filePath, options) {
                             }
                         }
                     }
-                    catch (e_14_1) { e_14 = { error: e_14_1 }; }
+                    catch (e_12_1) { e_12 = { error: e_12_1 }; }
                     finally {
                         try {
                             if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
                         }
-                        finally { if (e_14) throw e_14.error; }
+                        finally { if (e_12) throw e_12.error; }
                     }
                     var tableBackup = JSON.parse(JSON.stringify(file.tables[tableName]));
                     var deleted = 0;
                     try {
                         var i = 0;
                         var _loop_3 = function () {
-                            var e_15, _a, e_16, _b;
+                            var e_13, _a, e_14, _b;
                             var rowTryingToDelete = thisTable.get().rows[i];
                             if (rowTryingToDelete == undefined) {
                                 return "break";
@@ -973,7 +957,7 @@ exports.db = function (filePath, options) {
                             if (where(rowTryingToDelete)) {
                                 try {
                                     // Delete this row
-                                    for (var _c = (e_15 = void 0, __values(linkedColumns.entries())), _d = _c.next(); !_d.done; _d = _c.next()) {
+                                    for (var _c = (e_13 = void 0, __values(linkedColumns.entries())), _d = _c.next(); !_d.done; _d = _c.next()) {
                                         var entry = _d.value;
                                         var linkedColName = entry[0];
                                         var linkedCols = entry[1];
@@ -992,26 +976,26 @@ exports.db = function (filePath, options) {
                                             }
                                         };
                                         try {
-                                            for (var linkedCols_1 = (e_16 = void 0, __values(linkedCols)), linkedCols_1_1 = linkedCols_1.next(); !linkedCols_1_1.done; linkedCols_1_1 = linkedCols_1.next()) {
+                                            for (var linkedCols_1 = (e_14 = void 0, __values(linkedCols)), linkedCols_1_1 = linkedCols_1.next(); !linkedCols_1_1.done; linkedCols_1_1 = linkedCols_1.next()) {
                                                 var linkedCol = linkedCols_1_1.value;
                                                 _loop_4(linkedCol);
                                             }
                                         }
-                                        catch (e_16_1) { e_16 = { error: e_16_1 }; }
+                                        catch (e_14_1) { e_14 = { error: e_14_1 }; }
                                         finally {
                                             try {
                                                 if (linkedCols_1_1 && !linkedCols_1_1.done && (_b = linkedCols_1.return)) _b.call(linkedCols_1);
                                             }
-                                            finally { if (e_16) throw e_16.error; }
+                                            finally { if (e_14) throw e_14.error; }
                                         }
                                     }
                                 }
-                                catch (e_15_1) { e_15 = { error: e_15_1 }; }
+                                catch (e_13_1) { e_13 = { error: e_13_1 }; }
                                 finally {
                                     try {
                                         if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
                                     }
-                                    finally { if (e_15) throw e_15.error; }
+                                    finally { if (e_13) throw e_13.error; }
                                 }
                                 file.tables[tableName].rows.splice(i, 1);
                                 deleted++;
