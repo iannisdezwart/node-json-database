@@ -776,7 +776,7 @@ exports.db = function (filePath, options) {
                                             console.log(prevNumber, nextNumber, el);
                                             if (!(el > prevNumber && el < nextNumber)) {
                                                 if (options.safeAndFriendlyErrors) {
-                                                    throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave \"" + el + "\" empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
+                                                    throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave \"" + col.name + "\" empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
                                                 }
                                                 throw new Error("Could not insert " + chalk.red(el) + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " " + ((rowNum != undefined) ? "at row at index " + rowNum + " " : '') + "of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Leave this column empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
                                             }
@@ -953,7 +953,7 @@ exports.db = function (filePath, options) {
                             if (rowTryingToDelete == undefined) {
                                 return "break";
                             }
-                            rowTryingToDelete.rowNum = i;
+                            rowTryingToDelete.rowNum = i + deleted;
                             if (where(rowTryingToDelete)) {
                                 try {
                                     // Delete this row
