@@ -786,9 +786,9 @@ exports.db = function (filePath, options) {
                                             // Todo: Should a notNull column be able to have a default value?
                                             if (el == undefined) {
                                                 if (options.safeAndFriendlyErrors) {
-                                                    throw new Error("Could not insert en empty value into the column \"" + col.name + "\" of this table, since this column has the 'autoIncrement' constraint. Fill in this column");
+                                                    throw new Error("Could not insert en empty value into the column \"" + col.name + "\" of this table, since this column has the 'notNull' constraint. Fill in this column");
                                                 }
-                                                throw new Error("Could not insert " + chalk.red('null') + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('autoIncrement') + " constraint. Fill in this column.");
+                                                throw new Error("Could not insert " + chalk.red('null') + " into column " + chalk.yellow(col.name) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column has the " + chalk.grey('notNull') + " constraint. Fill in this column.");
                                             }
                                         }
                                         // unique
