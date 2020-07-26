@@ -1,6 +1,6 @@
 {
   "name": "node-json-database",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "description": "JS Database Management System using JSON files",
   "main": "index.js",
   "keywords": [

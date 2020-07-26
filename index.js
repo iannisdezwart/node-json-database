@@ -773,7 +773,6 @@ exports.db = function (filePath, options) {
                                                 : (rowNum < table_1.rows.length - 1)
                                                     ? table_1.rows[rowNum + 1][col.name]
                                                     : Infinity;
-                                            console.log(prevNumber, nextNumber, el);
                                             if (!(el > prevNumber && el < nextNumber)) {
                                                 if (options.safeAndFriendlyErrors) {
                                                     throw new Error("The value \"" + el + "\" could not be inserted into column \"" + col.name + "\" of this table, because this column has the 'autoIncrement' constraint. Just leave \"" + col.name + "\" empty or insert a value bigger than " + prevNumber + " and smaller than " + nextNumber + ".");
