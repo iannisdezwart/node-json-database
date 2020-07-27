@@ -355,7 +355,12 @@ var dataTypes = {
     Int: /** @class */ (function (_super) {
         __extends(DataType_Int, _super);
         function DataType_Int(value) {
-            return _super.call(this, ~~value) || this;
+            var _this = this;
+            if (value != null) {
+                value = ~~value;
+            }
+            _this = _super.call(this, value) || this;
+            return _this;
         }
         DataType_Int.prototype.compare = function (int) {
             return this.value > int.value;
@@ -482,6 +487,13 @@ exports.db = function (filePath, options) {
                 tableNames.push(tableName);
             }
             return tableNames;
+        },
+        set data(value) {
+            file.data = value;
+            writeDBFile();
+        },
+        get data() {
+            return file.data;
         },
         table: function (tableName) {
             if (file == null) {

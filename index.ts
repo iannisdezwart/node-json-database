@@ -4,7 +4,8 @@ import * as chalk from 'chalk'
 export interface DB {
 	tables: {
 		[tableName: string]: DB_Table
-	}
+	},
+	data?: any
 }
 
 export interface DB_Table {
@@ -122,13 +123,13 @@ export class Table {
 				colName = colArr[0]
 				sortedTable = this.sortBy(colName)
 			}
-	
+
 			// Split
-	
+
 			let prevValue = sortedTable.rows[0][colName]
 			let currentSegment: DB_Table_Row_Formatted[] = []
 			let outputTableRows: DB_Table_Row_Formatted[] = []
-	
+
 			const orderInner = (segment: DB_Table_Row_Formatted[], colNames: (string | [ string, 'ASC' | 'DESC' ])[]) =>
 				Table.fromRows(segment, this.cols).orderBy(colNames).rows
 
@@ -139,19 +140,19 @@ export class Table {
 					prevValue = sortedTable.rows[i][colName]
 
 					// Order old segment and store it inside outputTableRows, recursively
-	
+
 					outputTableRows.push(...orderInner(currentSegment, colArr.slice(1)))
 
 					// Open new segment
-	
+
 					currentSegment = []
 				}
-	
+
 				currentSegment.push(sortedTable.rows[i])
 			}
-	
+
 			// Order last segment
-	
+
 			outputTableRows.push(...orderInner(currentSegment, colArr.slice(1)))
 
 			return Table.fromRows(outputTableRows, this.cols)
@@ -190,7 +191,7 @@ export class Table {
 		const sortedTable = this.sortBy(colName)
 
 		// Split
-	
+
 		let prevValue = sortedTable.rows[0][colName]
 		let currentSegment: DB_Table_Row_Formatted[] = []
 
@@ -201,7 +202,7 @@ export class Table {
 				prevValue = sortedTable.rows[i][colName]
 
 				// Put current segment in segments
-				
+
 				segments.push(Table.fromRows(currentSegment, this.cols))
 
 				// Open new segment
@@ -324,7 +325,7 @@ export class Table {
 			}
 
 			// Set all right side columns
-			
+
 			for (let col of colsOfTable2) {
 				if (!(doubleColums.includes(col))) {
 					// Fill coulumns with null if they could not be joined
@@ -380,7 +381,11 @@ const dataTypes: {
 } = {
 	Int: class DataType_Int extends DataTypeClass<number> {
 		constructor(value: number) {
-			super(~~value)
+			if (value != null) {
+				value = ~~value
+			}
+
+			super(value)
 		}
 
 		compare(int: DataType_Int) {
@@ -459,17 +464,17 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 		},
 		...options
 	}
-	
+
 	let file: DB = fs.existsSync(filePath)
 		? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
 		: null
-	
+
 	const writeDBFile = () => {
 		fs.writeFileSync(filePath, JSON.stringify(file, null, 2))
 	}
 
 	// Returns thisDb
-	
+
 	const thisDb = {
 		create() {
 			if (file != null) {
@@ -527,6 +532,16 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 			return tableNames
 		},
 
+		set data(value: any) {
+			file.data = value
+
+			writeDBFile()
+		},
+
+		get data() {
+			return file.data
+		},
+
 		table(tableName: string) {
 			if (file == null) {
 				if (options.safeAndFriendlyErrors) {
@@ -560,7 +575,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 					writeDBFile()
 				},
-				
+
 				drop() {
 					if (!thisTable.exists) {
 						if (options.safeAndFriendlyErrors) {
@@ -570,9 +585,9 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
 					}
 
-					
+
 					const table = new Table(file.tables[tableName])
-					
+
 					const colNames = []
 					for (let col of table.cols) {
 						colNames.push(col.name)
@@ -662,12 +677,12 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 							for (let col of cols) {
 								// Handle primaryKey and foreignKey
-								
+
 								const { foreignKey } = col
-								
+
 								if (foreignKey != undefined) {
 									const foreignCol = thisDb.table(foreignKey.table).get().getCol(foreignKey.column)
-									
+
 									if (foreignCol.constraints == undefined) {
 										if (options.safeAndFriendlyErrors) {
 											throw new Error(`The column "${ col.name }" could not be added to this table because you specified that the values should be linked with the (foreign) column "${ foreignKey.column }" of the table "${ foreignKey.table }". The latter column does not have the 'primaryKey' constraint, which is required to do this.`)
@@ -703,7 +718,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 							throw err
 						}
-						
+
 					},
 
 					drop(colNames: string[]) {
@@ -721,7 +736,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 						try {
 							for (let colName of colNames) {
 								const col = table.getCol(colName)
-	
+
 								if (col == undefined) {
 									if (options.safeAndFriendlyErrors) {
 										throw new Error(`You cannot drop the column "${ colName }", since it does not exist in this table.`)
@@ -729,11 +744,11 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 									throw new Error(`Column ${ chalk.yellow(colName) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) } does not exist.`)
 								}
-	
+
 								// Check linkedWith relations
-	
+
 								const { linkedWith, foreignKey } = col
-	
+
 								if (linkedWith != undefined) {
 									if (linkedWith.length > 0) {
 										if (options.safeAndFriendlyErrors) {
@@ -743,32 +758,32 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 										throw new Error(`Could not drop column ${ chalk.yellow(colName) } because it is a primaryKey linked to these columns:\n${ chalk.cyan(JSON.stringify(linkedWith, null, 2)) }\nIn order to drop this column, you must drop the columns it is linked to first.`)
 									}
 								}
-	
+
 								// Unlink foreignKey relation, if necessary
-	
+
 								if (foreignKey != undefined) {
 									const foreignCol = thisDb.table(foreignKey.table).get().getCol(foreignKey.column)
-	
+
 									for (let i = 0; i < foreignCol.linkedWith.length; i++) {
 										const linkedCol = foreignCol.linkedWith[i]
-	
+
 										if (linkedCol.table == tableName && linkedCol.column == colName) {
 											foreignCol.linkedWith.splice(i, 1)
 										}
 									}
 								}
-	
+
 								// Delete column from table.cols
-	
+
 								for (let i = 0; i < file.tables[tableName].cols.length; i++) {
 									const colOfTable = file.tables[tableName].cols[i]
-									
+
 									if (colOfTable.name == colName) {
 										table.cols.splice(i, 1)
 									}
 								}
 							}
-	
+
 							writeDBFile()
 						} catch(err) {
 							// Restore changes on error
@@ -797,19 +812,19 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 					try {
 						for (let row of rows) {
 							const newRow: DB_Table_Row = []
-							
+
 							for (let col of table.cols) {
 								let el = row[col.name]
 								let dataTypeParsedEl: DataTypeClass<any>
-								
+
 								// Set to default if undefined
-								
+
 								if (el == undefined && col.default != undefined) {
 									el = col.default
 								}
-								
+
 								// Check for dataType
-								
+
 								try {
 									dataTypeParsedEl = new dataTypes[col.dataType](el)
 								} catch(err) {
@@ -819,7 +834,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 									throw new Error(`Could not insert value ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, beacuse it could not be converted to dataType ${ chalk.green(col.dataType) }.`)
 								}
-								
+
 								// Check constraints
 
 								if (col.constraints != undefined) {
@@ -858,7 +873,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 									}
 
 									// notNull
-									
+
 									if (col.constraints.includes('notNull')) {
 										// Todo: Should a notNull column be able to have a default value?
 
@@ -885,7 +900,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 												if (options.safeAndFriendlyErrors) {
 													throw new Error(`The value "${ el }" could not be inserted into column "${ col.name }" of this table, because this column has the 'unique' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
 												}
-	
+
 												throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('unique') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 											}
 										}
@@ -913,12 +928,12 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 											for (let i = 0; i < rows.length; i++) {
 												const row = rows[i]
-	
+
 												if (el == row[col.name] && rowNum != i) {
 													if (options.safeAndFriendlyErrors) {
 														throw new Error(`Could not insert the value "${ el }" into the column "${ col.name }" of this table, since this column has the 'primaryKey' constraint. This means that you cannot insert duplicate values. The value "${ el }" has already been entered in this row:\n${ JSON.stringify(row, null, 2) }.`)
 													}
-		
+
 													throw new Error(`Could not insert ${ chalk.red(el) } into column ${ chalk.yellow(col.name) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column has the ${ chalk.grey('primaryKey') } constraint. The value has already been entered in this row:\n${ chalk.red(JSON.stringify(row, null, 2)) }.`)
 												}
 											}
@@ -959,7 +974,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 							}
 
 						}
-	
+
 						writeDBFile()
 					} catch(err) {
 						// Restore changes on error
@@ -1052,11 +1067,11 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 							if (where(rowTryingToDelete)) {
 								// Delete this row
-								
+
 								for (const entry of linkedColumns.entries()) {
 									const linkedColName = entry[0]
 									const linkedCols = entry[1]
-									
+
 									for (let linkedCol of linkedCols) {
 										// Check if the linked column does not depend on the value we are trying to delete
 
