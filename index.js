@@ -92,23 +92,25 @@ var Table = /** @class */ (function () {
         }
         return Table.fromRows(newRows, this.cols);
     };
-    Table.prototype.where = function (filterFunction) {
+    Table.prototype.where = function (filterFunction, maximumRowsToFind) {
+        if (maximumRowsToFind === void 0) { maximumRowsToFind = Infinity; }
         var newRows = [];
+        var rowsFound = 0;
         for (var i = 0; i < this.rows.length; i++) {
             var row = this.rows[i];
             row.rowNum = i;
             if (filterFunction(row)) {
                 newRows.push(row);
+                rowsFound++;
+                if (rowsFound == maximumRowsToFind) {
+                    break;
+                }
             }
         }
         return Table.fromRows(newRows, this.cols);
     };
-    Table.prototype.between = function () {
-        var indices = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            indices[_i] = arguments[_i];
-        }
-        var newRows = this.rows.slice(indices[0], indices[1] + 1);
+    Table.prototype.between = function (index1, index2) {
+        var newRows = this.rows.slice(index1, index2 + 1);
         return Table.fromRows(newRows, this.cols);
     };
     Table.prototype.top = function (numberOfRecords) {
@@ -928,7 +930,7 @@ exports.db = function (filePath, options) {
                     }
                     return updated;
                 },
-                delete: function (where) {
+                deleteWhere: function (where) {
                     var e_12, _a;
                     if (!thisTable.exists) {
                         if (options.safeAndFriendlyErrors) {
@@ -1029,6 +1031,93 @@ exports.db = function (filePath, options) {
                         throw err;
                     }
                     return deleted;
+                },
+                deleteAt: function (rowIndex) {
+                    var e_15, _a, e_16, _b, e_17, _c;
+                    if (!thisTable.exists) {
+                        if (options.safeAndFriendlyErrors) {
+                            throw new Error("The table \"" + tableName + "\" does not exist in this database");
+                        }
+                        throw new Error("Table " + chalk.magenta(tableName) + " does not exist in database " + chalk.cyan(filePath) + ".");
+                    }
+                    var table = thisTable.get();
+                    // Get map of linked columns
+                    var linkedColumns = new Map();
+                    try {
+                        for (var _d = __values(table.cols), _e = _d.next(); !_e.done; _e = _d.next()) {
+                            var col = _e.value;
+                            if (col.linkedWith != undefined) {
+                                linkedColumns.set(col.name, col.linkedWith);
+                            }
+                        }
+                    }
+                    catch (e_15_1) { e_15 = { error: e_15_1 }; }
+                    finally {
+                        try {
+                            if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
+                        }
+                        finally { if (e_15) throw e_15.error; }
+                    }
+                    var tableBackup = JSON.parse(JSON.stringify(file.tables[tableName]));
+                    try {
+                        var rowTryingToDelete_1 = thisTable.get().rows[rowIndex];
+                        if (rowTryingToDelete_1 == undefined) {
+                            if (options.safeAndFriendlyErrors) {
+                                throw new Error("You tried to delete a non-existing row. Row number " + rowIndex + " does not exist in this table.");
+                            }
+                            throw new Error("Row at index " + rowIndex + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + " does not exist.");
+                        }
+                        try {
+                            // Delete the row
+                            for (var _f = __values(linkedColumns.entries()), _g = _f.next(); !_g.done; _g = _f.next()) {
+                                var entry = _g.value;
+                                var linkedColName = entry[0];
+                                var linkedCols = entry[1];
+                                var _loop_5 = function (linkedCol) {
+                                    // Check if the linked column does not depend on the value we are trying to delete
+                                    var thisTableCol = thisTable.get().getCol(linkedColName);
+                                    var linkedTable = thisDb.table(linkedCol.table);
+                                    var search = linkedTable.get().where(function (row) { return row[linkedCol.column] == rowTryingToDelete_1[thisTableCol.name]; });
+                                    var foundValues = JSON.stringify(search.rows, null, 2);
+                                    // Throw error if the value exists
+                                    if (search.rows.length > 0) {
+                                        if (options.safeAndFriendlyErrors) {
+                                            throw new Error("Could not delete the following row:\n" + JSON.stringify(rowTryingToDelete_1, null, 2) + "\n from this table, since the column \"" + linkedColName + "\" (which holds the value \"" + rowTryingToDelete_1[linkedColName] + "\") is linked to the (foreign) column \"" + linkedCol.column + "\" of the table \"" + linkedCol.table + "\". The latter column is dependent on this value.\n\nIn order to delte the value \"" + rowTryingToDelete_1[linkedColName] + "\" from the column \"" + linkedColName + "\" in this table, first delete these rows from the table \"" + linkedCol.table + "\":\n" + foundValues + ".");
+                                        }
+                                        throw new Error("Could not delete row\n" + chalk.red(JSON.stringify(rowTryingToDelete_1, null, 2)) + "\nfrom column " + chalk.yellow(linkedColName) + " of table " + chalk.magenta(tableName) + " of database " + chalk.cyan(filePath) + ", because this column is linked to a foreignKey from column " + chalk.yellow(linkedCol.column) + ", from table " + chalk.magenta(linkedCol.table) + ". The following dependent records were found in the linked column. First remove those records:\n" + chalk.red(foundValues) + ".");
+                                    }
+                                };
+                                try {
+                                    for (var linkedCols_2 = (e_17 = void 0, __values(linkedCols)), linkedCols_2_1 = linkedCols_2.next(); !linkedCols_2_1.done; linkedCols_2_1 = linkedCols_2.next()) {
+                                        var linkedCol = linkedCols_2_1.value;
+                                        _loop_5(linkedCol);
+                                    }
+                                }
+                                catch (e_17_1) { e_17 = { error: e_17_1 }; }
+                                finally {
+                                    try {
+                                        if (linkedCols_2_1 && !linkedCols_2_1.done && (_c = linkedCols_2.return)) _c.call(linkedCols_2);
+                                    }
+                                    finally { if (e_17) throw e_17.error; }
+                                }
+                            }
+                        }
+                        catch (e_16_1) { e_16 = { error: e_16_1 }; }
+                        finally {
+                            try {
+                                if (_g && !_g.done && (_b = _f.return)) _b.call(_f);
+                            }
+                            finally { if (e_16) throw e_16.error; }
+                        }
+                        file.tables[tableName].rows.splice(rowIndex, 1);
+                        writeDBFile();
+                    }
+                    catch (err) {
+                        // Restore changes on error
+                        file.tables[tableName] = tableBackup;
+                        writeDBFile();
+                        throw err;
+                    }
                 }
             };
             return thisTable;

@@ -78,8 +78,9 @@ export class Table {
 		return Table.fromRows(newRows, this.cols)
 	}
 
-	where(filterFunction: RowFilterFunction) {
+	where(filterFunction: RowFilterFunction, maximumRowsToFind = Infinity) {
 		const newRows: DB_Table_Row_Formatted[] = []
+		let rowsFound = 0
 
 		for (let i = 0; i < this.rows.length; i++) {
 			const row = this.rows[i]
@@ -87,14 +88,19 @@ export class Table {
 
 			if (filterFunction(row)) {
 				newRows.push(row)
+				rowsFound++
+
+				if (rowsFound == maximumRowsToFind) {
+					break
+				}
 			}
 		}
 
 		return Table.fromRows(newRows, this.cols)
 	}
 
-	between(...indices: [ number, number ]) {
-		const newRows = this.rows.slice(indices[0], indices[1] + 1)
+	between(index1: number, index2: number) {
+		const newRows = this.rows.slice(index1, index2 + 1)
 
 		return Table.fromRows(newRows, this.cols)
 	}
@@ -1028,7 +1034,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 					return updated
 				},
 
-				delete(where: RowFilterFunction) {
+				deleteWhere(where: RowFilterFunction) {
 					if (!thisTable.exists) {
 						if (options.safeAndFriendlyErrors) {
 							throw new Error(`The table "${ tableName }" does not exist in this database`)
@@ -1113,6 +1119,83 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 					}
 
 					return deleted
+				},
+
+				deleteAt(rowIndex: number) {
+					if (!thisTable.exists) {
+						if (options.safeAndFriendlyErrors) {
+							throw new Error(`The table "${ tableName }" does not exist in this database`)
+						}
+
+						throw new Error(`Table ${ chalk.magenta(tableName) } does not exist in database ${ chalk.cyan(filePath) }.`)
+					}
+
+					const table = thisTable.get()
+
+					// Get map of linked columns
+
+					const linkedColumns = new Map<string, Link[]>()
+
+					for (let col of table.cols) {
+						if (col.linkedWith != undefined) {
+							linkedColumns.set(col.name, col.linkedWith)
+						}
+					}
+
+					const tableBackup = JSON.parse(JSON.stringify(file.tables[tableName]))
+
+					try {
+						const rowTryingToDelete = thisTable.get().rows[rowIndex]
+
+						if (rowTryingToDelete == undefined) {
+							if (options.safeAndFriendlyErrors) {
+								throw new Error(`You tried to delete a non-existing row. Row number ${ rowIndex } does not exist in this table.`)
+							}
+
+							throw new Error(`Row at index ${ rowIndex } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) } does not exist.`)
+						}
+
+						// Delete the row
+
+						for (const entry of linkedColumns.entries()) {
+							const linkedColName = entry[0]
+							const linkedCols = entry[1]
+
+							for (let linkedCol of linkedCols) {
+								// Check if the linked column does not depend on the value we are trying to delete
+
+								const thisTableCol = thisTable.get().getCol(linkedColName)
+
+								const linkedTable = thisDb.table(linkedCol.table)
+								const search = linkedTable.get().where(
+									row => row[linkedCol.column] == rowTryingToDelete[thisTableCol.name]
+								)
+
+								const foundValues = JSON.stringify(search.rows, null, 2)
+
+								// Throw error if the value exists
+
+								if (search.rows.length > 0) {
+									if (options.safeAndFriendlyErrors) {
+										throw new Error(`Could not delete the following row:\n${ JSON.stringify(rowTryingToDelete, null, 2) }\n from this table, since the column "${ linkedColName }" (which holds the value "${ rowTryingToDelete[linkedColName] }") is linked to the (foreign) column "${ linkedCol.column }" of the table "${ linkedCol.table }". The latter column is dependent on this value.\n\nIn order to delte the value "${ rowTryingToDelete[linkedColName] }" from the column "${ linkedColName }" in this table, first delete these rows from the table "${ linkedCol.table }":\n${ foundValues }.`)
+									}
+
+									throw new Error(`Could not delete row\n${ chalk.red(JSON.stringify(rowTryingToDelete, null, 2)) }\nfrom column ${ chalk.yellow(linkedColName) } of table ${ chalk.magenta(tableName) } of database ${ chalk.cyan(filePath) }, because this column is linked to a foreignKey from column ${ chalk.yellow(linkedCol.column) }, from table ${ chalk.magenta(linkedCol.table) }. The following dependent records were found in the linked column. First remove those records:\n${ chalk.red(foundValues) }.`)
+								}
+							}
+						}
+
+						file.tables[tableName].rows.splice(rowIndex, 1)
+
+						writeDBFile()
+					} catch(err) {
+						// Restore changes on error
+
+						file.tables[tableName] = tableBackup
+						writeDBFile()
+
+						throw err
+					}
 				}
 			}
 
