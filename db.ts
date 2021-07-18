@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as chalk from 'chalk'
-import { DB, DB_Table_Col, DB_Table_Row, DB_Table_Row_Formatted, Link, RowFilterFunction } from "./types"
+import { DB, DB_Table_Col, DB_Table_Row, Link, RowFilterFunction } from "./types"
 import { Table } from './table'
 import { DataTypeClass, dataTypes } from './datatypes'
 
@@ -93,10 +93,10 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 			return file.data
 		},
 
-		table(tableName: string) {
+		table<Entry = any>(tableName: string) {
 			if (file == null) {
 				if (options.safeAndFriendlyErrors) {
-					throw new Error(`This database doesn not exist.`)
+					throw new Error(`This database does not exist.`)
 				}
 
 				throw new Error(`Database ${ chalk.cyan(filePath) } does not exist.`)
@@ -349,7 +349,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 				},
 
-				insert(rows: DB_Table_Row_Formatted[], rowNum?: number) {
+				insert(rows: Entry[], rowNum?: number) {
 					if (!thisTable.exists) {
 						if (options.safeAndFriendlyErrors) {
 							throw new Error(`The table "${ tableName }" does not exist in this database.`)
@@ -539,7 +539,7 @@ export const db = (filePath: string, options: DB_Function_Options = {}) => {
 
 				},
 
-				update(newRow: DB_Table_Row_Formatted, where: RowFilterFunction) {
+				update(newRow: Entry, where: RowFilterFunction) {
 					if (!thisTable.exists) {
 						if (options.safeAndFriendlyErrors) {
 							throw new Error(`The table "${ tableName }" does not exist in this database`)
